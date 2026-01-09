@@ -7,6 +7,16 @@ The project is built using **Python, Sentence Transformers, and Streamlit**.
 
 ---
 
+## Try It Out
+
+You can try the live version of ResMatch here:
+
+🔗 https://resmatch.streamlit.app
+
+Upload a resume (PDF), paste a job description, and get a semantic match score based on NLP similarity.
+
+---
+
 ## Why I Built This
 
 As a computer science graduate applying for software and machine learning roles, I noticed two recurring problems during job applications:
