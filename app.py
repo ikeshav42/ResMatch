@@ -7,7 +7,7 @@ import streamlit as st
 sys.path.append(os.path.abspath("src"))
 
 from resume_parser import extract_text_from_pdf
-from matcher import calculate_similarity
+from matcher import weighted_similarity
 
 st.set_page_config(page_title="ResMatch", layout="centered")
 
@@ -26,13 +26,21 @@ if st.button("Match Resume"):
             resume_path = tmp.name
 
         resume_text = extract_text_from_pdf(resume_path)
-        score = calculate_similarity(resume_text, job_description)
+        score, top_matches = weighted_similarity(resume_text, job_description)
 
         st.success(f"🔍 Match Score: **{score * 100:.2f}%**")
 
-        if score > 0.7:
-            st.write("✅ Strong match")
-        elif score > 0.5:
-            st.write("⚠️ Moderate match")
+        # Feedback summary
+        if score > 0.65:
+            st.write("✅ Strong overall alignment with the job description.")
+        elif score > 0.45:
+            st.write("⚠️ Moderate alignment with some strong matching areas.")
         else:
-            st.write("❌ Weak match")
+            st.write("❌ Limited alignment based on current resume content.")
+
+        st.subheader("📌 Strongly Relevant Resume Evidence")
+
+        for sentence, sim in top_matches[:5]:
+            st.write(f"• {sentence}")
+
+
