@@ -3,44 +3,48 @@ import os
 import tempfile
 import streamlit as st
 
-# Make src importable
 sys.path.append(os.path.abspath("src"))
 
 from resume_parser import extract_text_from_pdf
-from matcher import weighted_similarity
+from matcher import match_jd_to_resume
 
 st.set_page_config(page_title="ResMatch", layout="centered")
 
 st.title("📄 ResMatch")
-st.write("Match your resume with a job description using NLP")
+st.write("Check how well your resume covers a job description using semantic matching.")
 
 uploaded_file = st.file_uploader("Upload your resume (PDF)", type=["pdf"])
-job_description = st.text_area("Paste Job Description", height=200)
+job_description = st.text_area("Paste Job Description", height=220)
+
 
 if st.button("Match Resume"):
     if uploaded_file is None or not job_description.strip():
         st.warning("Please upload a resume and paste a job description.")
+        st.stop()
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(uploaded_file.read())
+        resume_path = tmp.name
+
+    resume_text = extract_text_from_pdf(resume_path)
+
+    score, matches = match_jd_to_resume(resume_text, job_description)
+
+    st.success(f"🔍 Match Score: **{score * 100:.2f}%**")
+
+    if score >= 0.7:
+        st.write("✅ Strong coverage of most job requirements.")
+    elif score >= 0.45:
+        st.write("⚠️ Partial coverage — some requirements are well supported.")
     else:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            tmp.write(uploaded_file.read())
-            resume_path = tmp.name
+        st.write("⚠️ Limited coverage — several job requirements lack evidence.")
 
-        resume_text = extract_text_from_pdf(resume_path)
-        score, top_matches = weighted_similarity(resume_text, job_description)
+    st.subheader("📌 Job Requirement Coverage")
 
-        st.success(f"🔍 Match Score: **{score * 100:.2f}%**")
-
-        # Feedback summary
-        if score > 0.65:
-            st.write("✅ Strong overall alignment with the job description.")
-        elif score > 0.45:
-            st.write("⚠️ Moderate alignment with some strong matching areas.")
-        else:
-            st.write("❌ Limited alignment based on current resume content.")
-
-        st.subheader("📌 Strongly Relevant Resume Evidence")
-
-        for sentence, sim in top_matches[:5]:
-            st.write(f"• {sentence}")
-
-
+    for m in matches:
+        st.markdown(f"""
+**JD Requirement:** {m['jd']}  
+→ **Best Resume Evidence:** {m['resume']}  
+Similarity: `{m['score']:.2f}`
+---
+""")

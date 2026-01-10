@@ -1,36 +1,59 @@
-from sentence_transformers import SentenceTransformer, util
+import re
 import numpy as np
+from sentence_transformers import SentenceTransformer, util
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def split_into_sentences(text: str):
-    return [s.strip() for s in text.split("\n") if len(s.strip()) > 20]
+def normalize(text: str) -> str:
+    text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
 
-def weighted_similarity(resume_text: str, job_description: str, top_k_ratio=0.4):
-    resume_sentences = split_into_sentences(resume_text)
+def split_sentences(text: str):
+    text = normalize(text)
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    return [s.strip() for s in sentences if len(s.strip()) > 5]
 
-    if not resume_sentences:
+
+def split_resume_chunks(text: str):
+
+    #Resume → semantic chunks.
+    #Bullets, lines treated as key
+
+    text = normalize(text)
+    chunks = re.split(r"[•\n]", text)
+    return [c.strip() for c in chunks if len(c.strip()) > 8]
+
+
+def match_jd_to_resume(resume_text: str, job_description: str):
+    jd_units = split_sentences(job_description)
+    resume_units = split_resume_chunks(resume_text)
+
+    if not jd_units or not resume_units:
         return 0.0, []
 
-    resume_embeddings = model.encode(resume_sentences, convert_to_tensor=True)
-    jd_embedding = model.encode(job_description, convert_to_tensor=True)
+    jd_emb = model.encode(jd_units, convert_to_tensor=True)
+    resume_emb = model.encode(resume_units, convert_to_tensor=True)
 
-    similarities = util.cos_sim(
-        resume_embeddings, jd_embedding
-    ).cpu().numpy().flatten()
+    sim_matrix = util.cos_sim(jd_emb, resume_emb).cpu().numpy()
 
-    ranked = sorted(
-        zip(resume_sentences, similarities),
-        key=lambda x: x[1],
-        reverse=True
-    )
+    matches = []
+    scores = []
 
-    k = max(1, int(len(ranked) * top_k_ratio))
-    top_sentences = ranked[:k]
+    for i, jd in enumerate(jd_units):
+        best_idx = int(np.argmax(sim_matrix[i]))
+        best_score = float(sim_matrix[i][best_idx])
 
-    scores = np.array([score for _, score in top_sentences])
-    weighted_score = np.sum(scores * scores) / np.sum(scores)
+        scores.append(best_score)
+        matches.append({
+            "jd": jd,
+            "resume": resume_units[best_idx],
+            "score": best_score
+        })
 
-    return float(weighted_score), top_sentences
+    final_score = float(np.mean(scores))
+    matches.sort(key=lambda x: x["score"], reverse=True)
+
+    return final_score, matches
