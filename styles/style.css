@@ -1,0 +1,35 @@
+
+html, body, [class*="css"] {
+    font-size: 14px;
+}
+
+.stMarkdown p {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+
+.stMarkdown strong {
+    font-weight: 600;
+}
+
+.stMarkdown h1 {
+    font-size: 20px;
+}
+.stMarkdown h2 {
+    font-size: 18px;
+}
+.stMarkdown h3 {
+    font-size: 16px;
+}
+.stMarkdown h4 {
+    font-size: 15px;
+}
+
+.stMarkdown {
+    margin-bottom: 8px;
+}
+
+a.anchor-link {
+    display: none !important;
+}

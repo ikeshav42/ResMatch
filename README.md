@@ -15,6 +15,8 @@ You can try the live version of ResMatch here:
 
 Upload a resume (PDF), paste a job description, and get a semantic match score based on NLP similarity.
 
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
 ---
 
 ## Why I Built This
